@@ -1,0 +1,6 @@
+interface:
+  display_name: "3専門家のコードレビュー"
+  short_description: "セキュリティ・設計規約・SOLIDとDRYを3人が独立に厳しく確認する。"
+  default_prompt: "$review-code このブランチとmainの差分を3人の専門家で独立レビューし、根拠付きで報告して。"
+policy:
+  allow_implicit_invocation: true

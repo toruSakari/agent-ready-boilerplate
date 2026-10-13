@@ -1,0 +1,6 @@
+interface:
+  display_name: "ユースケースの実装"
+  short_description: "受け入れ条件から設計・実装・検証まで進める。"
+  default_prompt: "$implement-use-case この機能の受け入れ条件を整理して、実装と検証まで進めて。"
+policy:
+  allow_implicit_invocation: true

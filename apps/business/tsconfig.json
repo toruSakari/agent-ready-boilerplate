@@ -1,0 +1,21 @@
+{
+  "extends": "@dev-template/config/tsconfig",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app/**/*.tsx",
+    "app/**/*.ts",
+    "worker-entry.ts",
+    "vite.config.ts",
+    "worker-configuration.d.ts"
+  ],
+  "compilerOptions": {
+    "incremental": false,
+    "types": ["node", "./worker-configuration.d.ts", "vite-plus/client"],
+    "paths": {
+      "#business/*": ["./src/*"],
+      "#app/*": ["./app/*"]
+    }
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.stories.tsx", "src/test/**"]
+}

@@ -1,0 +1,45 @@
+name: Repository Boundaries
+
+on:
+  pull_request:
+    paths:
+      - apps/**
+      - packages/**
+      - tooling/export-repository.mjs
+      - lint/**
+      - tests/repository-*.test.ts
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+      - .github/workflows/repository-boundaries.yml
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  independent-app:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, web, business, admin]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Export the app with packaged shared dependencies
+        run: pnpm repository:export "${{ matrix.app }}" --out "${{ runner.temp }}/exported-app"
+      # 元のnode_modulesを使わず、配布物だけから独立して構築できるか確認する。
+      - run: pnpm install
+        working-directory: ${{ runner.temp }}/exported-app
+      - run: pnpm typecheck
+        working-directory: ${{ runner.temp }}/exported-app
+      - run: pnpm build
+        working-directory: ${{ runner.temp }}/exported-app
+      - run: pnpm test
+        working-directory: ${{ runner.temp }}/exported-app

@@ -1,0 +1,67 @@
+{
+  "name": "@dev-template/config",
+  "version": "0.1.0",
+  "private": false,
+  "files": [
+    "dist",
+    "tsconfig.base.json",
+    "frontend-env.d.ts"
+  ],
+  "type": "module",
+  "imports": {
+    "#config/*.js": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "exports": {
+    "./frontend": {
+      "types": "./dist/frontend-config.d.ts",
+      "import": "./dist/frontend-config.js"
+    },
+    "./tsconfig": "./tsconfig.base.json",
+    "./proxy": {
+      "types": "./dist/api-proxy.d.ts",
+      "import": "./dist/api-proxy.js"
+    },
+    "./env": "./frontend-env.d.ts",
+    "./auth": {
+      "types": "./dist/frontend-auth.d.ts",
+      "import": "./dist/frontend-auth.js"
+    },
+    "./security": {
+      "types": "./dist/security-headers.d.ts",
+      "import": "./dist/security-headers.js"
+    },
+    "./logging": {
+      "types": "./dist/logging.d.ts",
+      "import": "./dist/logging.js"
+    },
+    "./request-logging": {
+      "types": "./dist/request-logging.d.ts",
+      "import": "./dist/request-logging.js"
+    },
+    "./start-logging": {
+      "types": "./dist/start-logging.d.ts",
+      "import": "./dist/start-logging.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@clerk/backend": "3.18.1",
+    "@clerk/shared": "4.36.0",
+    "@cloudflare/vite-plugin": "1.62.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite-plus": "0.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.3",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "request-throttle-integration",
+  "main": "request-throttle.worker.ts",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "APP_ENV": "production" },
+  "durable_objects": {
+    "bindings": [{ "name": "REQUEST_THROTTLE", "class_name": "RequestThrottle" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RequestThrottle"] }],
+}

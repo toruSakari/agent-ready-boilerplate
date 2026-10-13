@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["node"],
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "#config/*.js": ["./*.ts"]
+    }
+  },
+  "include": [
+    "frontend-config.ts",
+    "api-proxy.ts",
+    "frontend-auth.ts",
+    "security-headers.ts",
+    "logging.ts",
+    "request-logging.ts",
+    "start-logging.ts"
+  ]
+}

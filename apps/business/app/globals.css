@@ -1,0 +1,8 @@
+@import "@dev-template/ui/styles.css";
+@import "@dev-template/client/styles.css";
+
+/* このアプリの業務UIだけを追加探索し、story・テスト専用のクラスは本番CSSへ含めない。 */
+@source "../src";
+@source not "../src/**/*.stories.tsx";
+@source not "../src/**/*.test.*";
+@source not "../src/test";

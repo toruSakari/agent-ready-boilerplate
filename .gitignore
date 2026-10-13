@@ -1,0 +1,29 @@
+node_modules/
+.next/
+.vinext/
+.wrangler/
+dist/
+# 秘密情報を含むローカル設定は追跡せず、共有する雛形だけを例外にする。
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+next-env.d.ts
+.env
+.env.*
+!.env.example
+.vite/
+playwright-report/
+test-results/
+coverage/
+*.tsbuildinfo
+
+.preview/
+
+# Drizzle Labの個人用レイアウトはスキーマ変更と区別する。
+.drizzle/
+
+# ローカルで生成したStorybookの出力はソースに含めない。
+storybook-static/
+
+# Clerk開発インスタンスのキー・所有権取得トークン。
+.clerk/

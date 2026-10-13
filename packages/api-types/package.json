@@ -1,0 +1,18 @@
+{
+  "name": "@dev-template/api-types",
+  "version": "0.1.0",
+  "private": false,
+  "files": [
+    "index.d.ts"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
+  },
+  "dependencies": {
+    "@trpc/server": "11.19.0",
+    "zod": "4.6.5"
+  }
+}

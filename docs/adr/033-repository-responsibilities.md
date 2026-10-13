@@ -1,0 +1,98 @@
+# ADR 033: RepositoryのEntity契約とアダプターの責務分離
+
+## 状態
+
+採用。
+
+## 背景
+
+RepositoryのinterfaceはEntityの保存・復元を規約にしていたが、商品画像の操作DTOや監査追記が混在していた。
+D1実装はRepositoryとQuery・Outbox・画像清掃を兼務し、名前と実際の責務が一致していなかった。
+
+## 決定
+
+Repositoryは保存時にEntityを受け取り、取得時に保存データを検証して復元済みEntityを返す。
+先にinterfaceの契約を定義し、実装・DI・fixtureを合わせる。DTOからの復元をUseCaseへ移さない。
+保存のvoid、競合判定のboolean、取得条件や期待版はEntityで包まない。
+Accessのloadは同じ版に結び付く復元済みEntity群を返し、commitは変更Entity群と削除ID・期待版を受け取る。
+
+UseCaseの永続化読取は一覧・履歴・集計もRepositoryのEntity契約に統一する。
+商品一覧・SKU照合はProduct、注文一覧はOrder、決済の保存状態はPaymentState、履歴はStockAdjustmentEntryを復元する。
+表示DTO・表示名との結合・件数計算はapplicationで行う。生のDB行や表示DTOをEntityと名付けて返さない。
+認可済みactorのAccessスナップショットもRepositoryが復元したEntity群を保持する。
+会員UseCaseはAccessReadRepositoryを受け取り、UseCaseが会員・プラン・所属Entityから業務判断する。招待発行者の現在権限はInvitationIssuerPolicyが同じEntity契約から判断する。
+通信境界の本人確認・認可専用AccessQueryはUseCaseに注入しない。
+
+公開商品はIDを先にページングして有効画像をJOINし、画像数で商品件数・カーソルを変えない。
+販売企業・D1台帳の現在庫・注文の決済状態はページ内の対象を一括取得する。
+D1の変数上限に合わせたチャンクはbatchでまとめ、対象ごとにSQLを発行しない。
+注文より新しい版の決済状態は表示せず、複数読取の間に進んだ注文の情報を混ぜない。
+一覧の次ページ判定はlimit+1件のEntityとカーソルで行い、条件・ページ情報はEntityで包まない。
+
+商品登録はProductRepository.registerが商品・初期在庫・変更履歴を原子保存する。
+画像の回収用仮登録はProductImageStore、Productの画像関連付け・解除はProductRepository、回収はProductImageCleanupStore、
+監査追記はAccessAuditStore、配信待ち取得と配信済み記録はD1OutboxStoreが担当する。
+Composition Rootで用途に応じて注入する。
+
+RepositoryはQuery・Storage・Store・Messagingのポートや実装に依存しない。両者が使うDBの選択・組み立てだけを当該領域のsharedへ置き、sharedから個別アダプターに依存させない。
+取得・保存の処理はRepository本体のメソッドにまとめ、操作ごとの委譲ファイルは作らない。
+複雑なSQL組み立てだけを独立させる場合は、当該領域のsharedへ操作が分かる名前で配置する。Queryという名前を付けて配置を曖昧にしない。
+Entity復元のためのSELECTは一覧もRepositoryの責務に含む。画像実体・仮登録・清掃の結合テストと実DB設定はstorageへ置き、商品画像の関連付け・解除の保存境界はrepositoriesで検証する。
+
+注文保存とOutbox、Access変更と変更監査の原子保存はRepository内に残す。
+決済表示の同期はdomainのPaymentRepositoryとinfrastructureのrepositoriesが担当し、同じ企業・注文で版が進んだ場合だけPaymentの状態を反映する。同じ版・旧版の再送は成功扱いとし、同じ決済IDで企業や注文を変更する要求は保存せず拒否する。実課金・外部決済イベントの配信は追加しない。
+Accessの保存ガードには監査IDとは別の試行IDを使い、古い版で同じ監査IDを再送しても前回の勝者を参照させない。
+Accessの共通更新番号は維持する。会員の退会・停止やplatformの変更は複数企業の認可へ影響するため、企業別の版へ分割するには共有状態の無効化も設計する必要がある。
+画像のD1バッチ・R2保持期限・清掃リース、現在の認可・テナント分離・競合制御は維持する。
+
+## Entity保存をRepositoryへ集約する境界
+
+Entityを受け取り保存するポートをStoreとして別定義せず、domainのRepositoryを使う。
+Snapshot・DTOを受け取るだけでもEntityの状態・関連を更新するなら同じ責務とする。メソッドの引数型だけで保存対象を分類しない。
+StockAdjustmentRepositoryは履歴を復元して返す。通常の在庫調整は変更済InventoryItemとStockAdjustmentEntryを
+InventoryRepository.saveAdjustmentへ渡し、Repositoryが両者の企業・SKU・変更イベント・数量の対応を確認して同じbatchへ保存する。
+同じ企業・SKUの読取から保存までをDOが直列化する。冪等な再送で履歴INSERTを無視して在庫だけ更新してはいけない。
+
+商品登録はProductRepository.registerに限定した複合初期化として扱う。Productと在庫の集約は統合しない。
+商品側は在庫Entityを直接参照せず、初期数量などの値契約を受け取る。inventory/shared/initial-stock-statementsが
+在庫台帳と初期履歴のINSERTを組み立て、D1ProductRepositoryが商品INSERTと一緒に一度だけbatchで実行する。
+この部品はcommitせず、既存SKUの変更・upsertもしない。いずれかの制約違反や途中失敗は商品・在庫・履歴をすべて取り消す。
+すべてのEntityが必ずそれ自身専用のRepositoryを通る設計とはせず、現在の商品登録に必要な原子境界を明記する。
+
+個別Repository.saveの順次実行では途中失敗を取り消せないため採用しない。D1のbatchは全SQLを先に組み立てる仕組みで、
+任意の読取・非同期処理を挟む対話型transactionとして扱わない。汎用UnitOfWorkや、保存完了を装う遅延saveは追加しない。
+既存の限定的な登録境界と同一領域の在庫調整で要件を満たすため、汎用の複数Repository調停機構は導入しない。
+独立した監査追記、Outbox配信、画像の回収用stage・清掃リース・R2実体保存はEntity集約の保存と異なる契約として残す。
+
+Productは画像の追加・代表差し替え・解除を自身の操作で表し、変更後のEntityをProductRepository.attachImage/removeImageへ渡す。
+RepositoryはEntityから対象画像と代表参照を取得し、変更対象だけをD1 batchへ保存する。画像配列の全置換で並行追加を失わせない。
+既読の代表キー、stageの企業・商品・キー・期限、20件上限、試行ごとのmutationIdで勝者を確認し、関連付けと退役・代表参照の更新を同時に確定する。
+商品が保持する画像参照と関連はRepositoryが所有し、ProductImageStoreはR2書込前に回収可能なstage記録を作る操作だけを残す。
+清掃は有効画像・代表参照・注文履歴からの参照、保持期限とリースを確認し、取得済みファイルを要求中に補償削除しない。
+商品・画像の集約モデルと保持期間は[ADR 012](012-product-image-lifecycle.md)に従う。
+
+確認日: 2026-10-12。Cloudflareの[batchの原子性](https://developers.cloudflare.com/d1/worker-api/d1-database/)と
+利用中の[Drizzle 0.45.3のD1実装](https://github.com/drizzle-team/drizzle-orm/blob/0.45.3/drizzle-orm/src/d1/session.ts)を照合した。
+同実装のbatchはD1Database.batchへ委譲し、transactionは別々のBEGIN/COMMITを発行するため今回の調停には使わない。
+
+## 理由と影響
+
+単一取得と一覧取得で別のQuery規約を覚えず、UseCaseはRepositoryのEntityを扱う。
+ダッシュボードの総数も全対象Entityから数えるため、SQL COUNTに比べ取得・復元の負荷が増える。商品・注文は100件単位で処理し、ページ単位の取得だけを行う。大量データでSQL集計が必要になった場合は、この規約の変更として検討する。件数DTOの名目上のEntity化は行わない。
+Repositoryを開けば取得条件と原子保存の順序を追えるようにし、薄い委譲クラスと操作別ファイルの往復を減らす。
+Accessの所属・招待・退会に伴うSQL組み立ては`infrastructure/access/shared/access-membership-statements.ts`へ分離する。
+この部品はbatchを実行せず、版比較・監査とともに実行する責任はRepository本体に残す。
+在庫はD1台帳とDO予約を合わせるInventoryRepositoryがEntityの取得・保存を担当し、D1保存形式はsharedの内部部品へ閉じる。
+一覧・単一在庫のUseCaseはDurableInventoryReadRepositoryが内部DO通信のスナップショットを検証・復元したInventoryItemを受け取る。予約IDを含む通信値はapplicationの公開DTOから除外する。DOは企業・SKUごとに分かれるため、一覧の要求数は商品数に応じて増える。上限25件・同時実行5件を維持する。
+在庫調整のEntityと履歴の原子保存・予約の保存順序は[ADR 002](002-order-consistency.md)に従う。
+保存データの復元は既存のmappersが所有する。API・DBスキーマ・競合の単位は変更しない。
+比較した公式資料と適用範囲は[Repository構成の調査](../project/repository-organization-research.md)を参照する。
+
+## 検証
+
+Oxlintのproject/repository-responsibilitiesで本番Repositoryの依存・配置とUseCaseからQueryポートへの依存を検査する。
+application/infrastructureのstoresからdomainのentitiesへの直接importも拒否する。SQLの意味や間接依存まで証明する検査ではないため、保存責務と原子性はレビュー・実DBテストでも確認する。
+型契約でRepositoryのEntity入出力・DTOの非互換性・実装の公開メソッドを固定する。
+商品登録の途中失敗・重複・同時登録、在庫調整の再送・競合・履歴ロールバック、決済の旧版・所有関係衝突をローカルD1で検証する。
+既存の実D1・R2結合テストで画像の競合・応答喪失・清掃再試行、注文とOutbox、Access監査を確認する。
+APIの応答やDBスキーマは変更しない。追加マイグレーションは不要。

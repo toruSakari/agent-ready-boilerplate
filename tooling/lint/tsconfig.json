@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "incremental": false,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["./**/*.ts", "../../lint/**/*.ts"],
+  "exclude": ["../../node_modules"]
+}

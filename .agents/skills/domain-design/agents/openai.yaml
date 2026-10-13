@@ -1,0 +1,6 @@
+interface:
+  display_name: "業務とドメインの設計"
+  short_description: "業務用語・ルール・図を整理し、最初のユースケースを決める。"
+  default_prompt: "$domain-design このプロジェクトの業務用語とルールを整理して、ドメインモデル図を作って。"
+policy:
+  allow_implicit_invocation: true

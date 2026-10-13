@@ -1,0 +1,17 @@
+{
+  "name": "foreign-key-migration-integration",
+  "compatibility_date": "2026-09-30",
+  // 同じ移行を既存DBの更新と新規DBの構築で比較するため、ローカルDBを分ける。
+  "d1_databases": [
+    {
+      "binding": "UPGRADED_DB",
+      "database_name": "foreign-key-upgraded",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+    },
+    {
+      "binding": "FRESH_DB",
+      "database_name": "foreign-key-fresh",
+      "database_id": "00000000-0000-0000-0000-000000000002",
+    },
+  ],
+}

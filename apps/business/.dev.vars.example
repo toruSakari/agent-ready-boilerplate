@@ -1,0 +1,5 @@
+# ローカルデモではAPP_ENVだけ。Clerkで確認するときは同じインスタンスの秘密鍵を設定する。
+APP_ENV=local
+# サーバーのセッション同期用。NEXT_PUBLIC_*やコミット対象の実値へ秘密鍵を置かない。
+CLERK_SECRET_KEY=
+CLERK_AUTHORIZED_PARTIES=http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175

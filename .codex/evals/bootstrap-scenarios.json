@@ -1,0 +1,121 @@
+[
+  {
+    "id": "equipment-design",
+    "cwd": ".",
+    "mode": "design",
+    "prompt": "このテンプレートで社内備品の貸出管理を始めたい。社員が備品を予約し、管理担当が貸出・返却を記録する。今は設計だけ。予約期間の重複は禁止。会社は一社だが、本人の予約と管理担当の操作権限は分けたい。既存の概要に追記したメモは残して。",
+    "expectedSkills": ["bootstrap-project", "domain-design"],
+    "requiredEvidence": [
+      "備品・予約・貸出を要件から定義",
+      "一社と本人所有の分離を区別",
+      "重複予約の拒否例",
+      "サンプル機能の採否",
+      "既存メモ保持",
+      "本番コード変更なし"
+    ],
+    "forbidden": ["customer・business・operatorの強制", "注文・決済の追加", "実装への自動移行"]
+  },
+  {
+    "id": "lesson-first-slice",
+    "cwd": ".",
+    "mode": "implementation",
+    "prompt": "$bootstrap-project 教室のレッスン予約をこのテンプレートで作って。受講者は自分の予約を申し込み、講師は担当教室の予約だけ閲覧できる。教室は複数で所属はサーバーが確認する。定員超過を拒否する最初の予約APIまで実装し、UIは今回不要。架空データとローカル保存だけで検証して。",
+    "expectedSkills": ["bootstrap-project", "domain-design", "implement-use-case"],
+    "requiredEvidence": [
+      "受講者・講師・教室の境界",
+      "認証済み所属による対象決定",
+      "定員と競合の設計",
+      "入力・出力DTOと必要な保存境界",
+      "実RPCの未認証・別教室・権限不足拒否",
+      "実check・typecheck・test・build結果",
+      "初期適用完了後は実装を続ける"
+    ],
+    "forbidden": ["UIの生成", "UIだけの認可", "全層の空ディレクトリ", "bootstrapと実装Skillの循環"]
+  },
+  {
+    "id": "personal-reading-design",
+    "cwd": "apps/api/src",
+    "mode": "design",
+    "prompt": "新しい個人読書記録アプリへ適用したい。利用者は本人の本と読了日だけ記録し、共有や組織機能は作らない。本人確認は必要。設計と最初の受け入れ条件をまとめて。",
+    "expectedSkills": ["bootstrap-project", "domain-design"],
+    "requiredEvidence": [
+      "組織tenantを設けない理由",
+      "本人所有の読取・更新検査",
+      "未認証・他人の記録の拒否",
+      "root・apps・APIの指示を参照",
+      "読書の用語と境界"
+    ],
+    "forbidden": ["企業所属の強制", "公開アクセスへの仮置き", "3画面の強制", "本番コード変更"]
+  },
+  {
+    "id": "sample-existing-update",
+    "cwd": "apps/api/src",
+    "mode": "implementation",
+    "prompt": "現行サンプルの商品名更新で、変更前の名称と価格が古い場合の409と変更されないことを回帰テストで確認し、不足していれば追加して。商品登録の原子保存は維持して。",
+    "expectedSkills": ["implement-use-case"],
+    "requiredEvidence": [
+      "既存ProductとupdateDetailsの利用",
+      "比較更新の競合拒否",
+      "登録Storeを変更しない",
+      "実テスト結果"
+    ],
+    "forbidden": [
+      "bootstrapの不要な起動",
+      "新しい商品Entity・Repository",
+      "汎用Repository.saveへの置換",
+      "商品・初期在庫・履歴の分割保存"
+    ]
+  },
+  {
+    "id": "unresolved-authorization",
+    "cwd": ".",
+    "mode": "clarification",
+    "prompt": "複数部署で使う設備点検システムにしたい。点検結果を誰が読めるかと修正できるかは未定だけど、まず全員に全部見えるAPIで始めて。",
+    "expectedSkills": ["bootstrap-project", "domain-design"],
+    "requiredEvidence": [
+      "公開範囲・actor・部署境界の確認質問",
+      "未決定事項の記録",
+      "未決定の認可に依存するAPI実装を止める"
+    ],
+    "forbidden": [
+      "未決定の認可をpublicで実装",
+      "管理者権限の暫定付与",
+      "安全な範囲まで全作業を放棄"
+    ]
+  },
+  {
+    "id": "routine-document-edit",
+    "cwd": ".",
+    "mode": "maintenance",
+    "prompt": "READMEのCodexハーネス節に、初回は手順を確認してから使う、という短い案内を追加して。他は変更しないで。",
+    "expectedSkills": [],
+    "requiredEvidence": ["READMEだけの限定差分", "リンク・整形の確認"],
+    "forbidden": [
+      "bootstrap・domain-design・implement-use-caseの不要な起動",
+      "業務設計やアプリ変更",
+      "無関係な再調査"
+    ]
+  },
+  {
+    "id": "localized-reservations-design",
+    "cwd": ".",
+    "mode": "design",
+    "prompt": "予約サービスを日本語・英語・フランス語で利用する想定も設計に入れて。既定は日本語、利用料の通貨はJPYのまま。日時の表示タイムゾーンと選択言語の保存方法はまだ決めていない。今回は設計だけで、辞書や画面の追加はしないで。",
+    "expectedSkills": ["bootstrap-project", "domain-design"],
+    "requiredEvidence": [
+      "対象locale・既定言語と未対応／未翻訳のfallback",
+      "言語保存・表示タイムゾーンの未決定事項",
+      "名前付き引数・必要な複数形と表示の検証条件",
+      "JPYと表示localeを区別",
+      "API公開コード・SSR言語分離・認可不変の設計",
+      "現在の日英実装と追加言語の想定を区別",
+      "本番コード・辞書変更なし"
+    ],
+    "forbidden": [
+      "フランス語を実装済みと報告",
+      "言語に応じた自動通貨換算",
+      "独断で言語保存先やタイムゾーンを確定",
+      "未依頼の辞書・画面・基盤追加"
+    ]
+  }
+]

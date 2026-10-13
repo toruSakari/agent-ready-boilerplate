@@ -1,0 +1,19 @@
+{
+  "extends": "@dev-template/config/tsconfig",
+  "compilerOptions": {
+    "incremental": false,
+    "types": ["node", "./worker-configuration.d.ts"],
+    "paths": {
+      "#api/*": ["./src/*"],
+      "#api-tooling/*": ["./tooling/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "worker-entry.ts",
+    "drizzle.config.ts",
+    "worker-configuration.d.ts",
+    "vite.config.ts",
+    "tooling/**/*.ts"
+  ]
+}

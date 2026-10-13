@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dev-template-web",
+  "main": "worker-entry.ts",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+  },
+  // 画面WorkerはDBを直接持たず、共通API Workerへ内部転送する。
+  "services": [
+    {
+      "binding": "API",
+      "service": "dev-template",
+    },
+  ],
+  // 公開設定だけを記載する。Clerkの秘密鍵はWorkerのsecretとして別途設定する。
+  "vars": {
+    "APP_ENV": "production",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}

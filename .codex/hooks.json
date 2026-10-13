@@ -1,0 +1,17 @@
+{
+  "description": "ターン終了前にformat・lint・型を確認する。利用前に/hooksで信頼する。",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/scripts/codex-stop.mjs\"",
+            "timeout": 180,
+            "statusMessage": "Checking format, lint, and types"
+          }
+        ]
+      }
+    ]
+  }
+}

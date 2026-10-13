@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "types": ["node", "./apps/api/worker-configuration.d.ts"],
+    "paths": {
+      "@/*": ["./*"],
+      "#api/*": ["./apps/api/src/*"],
+      "#client/*": ["./packages/client/src/*"],
+      "#web/*": ["./apps/web/src/*"],
+      "#business/*": ["./apps/business/src/*"],
+      "#admin/*": ["./apps/admin/src/*"],
+      "#storybook/*": ["./.storybook/*"],
+      "#api-tooling/*": ["./apps/api/tooling/*"]
+    },
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "apps/api/worker-configuration.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "storybook-static",
+    "apps/*/app/router.ts",
+    "apps/*/app/routeTree.gen.ts",
+    "apps/*/app/routes/**/*.ts",
+    "apps/*/app/routes/**/*.tsx"
+  ]
+}

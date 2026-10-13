@@ -1,0 +1,29 @@
+packages:
+  - apps/*
+  - packages/*
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+# workspace全体でVite実装を揃え、アプリごとの依存解決差を抑える。
+overrides:
+  esbuild@<=0.24.2: 0.28.2
+  fflate@>=0.7.0 <0.7.5: 0.8.3
+  sharp@<0.35.5: ^0.35.5
+  source-map-js@>=1.0.0 <1.2.2: ^1.2.2
+  undici@>=7.0.0 <7.29.1: ^7.29.1
+  vite@*: npm:@voidzero-dev/vite-plus-core@0.3.3
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: "*"
+# インストール時スクリプトは、開発に必要なネイティブ実行物だけを許可する。
+allowBuilds:
+  "@clerk/shared": false
+  esbuild: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - "@clerk/localizations@4.23.0"
+  - "@clerk/shared@4.40.0"
+patchedDependencies:
+  "@tanstack/start-server-core@1.169.39": patches/@tanstack__start-server-core@1.169.39.patch

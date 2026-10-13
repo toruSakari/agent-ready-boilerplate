@@ -1,0 +1,50 @@
+{
+  "name": "@dev-template/web",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#app/*": "./app/*",
+    "#web/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "vp dev --host 127.0.0.1 --port 5173",
+    "build": "vp build",
+    "deploy": "wrangler deploy --config dist/server/wrangler.json",
+    "types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "test": "vp test --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@dev-template/client": "workspace:*",
+    "@dev-template/config": "workspace:*",
+    "@dev-template/ui": "workspace:*",
+    "@tanstack/react-query": "5.103.2",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@clerk/react": "6.16.1",
+    "@dev-template/api-types": "workspace:*",
+    "@juggle/resize-observer": "3.4.0",
+    "@storybook/react-vite": "10.6.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@trpc/client": "11.19.0",
+    "@trpc/server": "11.19.0",
+    "@types/node": "26.6.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "jsdom": "30.1.1",
+    "next-themes": "0.4.6",
+    "storybook": "10.6.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite-plus": "0.3.3",
+    "wrangler": "4.143.0"
+  }
+}

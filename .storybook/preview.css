@@ -1,0 +1,9 @@
+@import "@dev-template/ui/styles.css";
+@import "@dev-template/client/styles.css";
+
+/* 本番CSSのstory除外を読み込んだ後で、隣接する表示例をStorybook専用の対象へ戻す。 */
+@source "../packages/ui/src/**/*.stories.tsx";
+@source "../packages/client/src/**/*.stories.tsx";
+
+@source "../apps/*/src";
+@source "../apps/*/src/**/*.stories.tsx";

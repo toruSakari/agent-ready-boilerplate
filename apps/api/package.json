@@ -1,0 +1,50 @@
+{
+  "name": "@dev-template/api",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#api/*": "./src/*",
+    "#api-tooling/*": "./tooling/*"
+  },
+  "exports": {
+    "./access-permissions": "./src/domain/access/value-objects/permission.ts"
+  },
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --inspector-port 9229",
+    "build": "pnpm api:types && wrangler deploy --dry-run --outdir dist",
+    "deploy": "node tooling/deploy-api.mjs",
+    "db:er": "pnpm dlx drizzle-lab@0.11.0 visualizer --config ./drizzle.config.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed:local": "node tooling/seed-local.mjs",
+    "db:preflight": "node tooling/check-inventory-migration.mjs",
+    "access:bootstrap": "node tooling/bootstrap-admin.mjs",
+    "types": "wrangler types",
+    "api:types": "node tooling/generate-api-types.mjs",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/backend": "3.18.1",
+    "@hono/trpc-server": "0.4.2",
+    "@sentry/cloudflare": "11.0.0",
+    "@trpc/server": "11.19.0",
+    "drizzle-orm": "0.45.3",
+    "hono": "4.13.8",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@dev-template/config": "workspace:*",
+    "@trpc/client": "11.19.0",
+    "@types/node": "26.6.3",
+    "@typescript/typescript6": "6.0.2",
+    "drizzle-kit": "0.31.11",
+    "rollup": "4.64.0",
+    "rollup-plugin-dts": "6.5.1",
+    "typescript": "7.0.2",
+    "vite-plus": "0.3.3",
+    "wrangler": "4.143.0"
+  }
+}

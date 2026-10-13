@@ -1,0 +1,6 @@
+{
+  // 独立したローカル通信テスト専用。アプリのbindingや配備設定は読み込まない。
+  "name": "image-transport-integration",
+  "main": "./image-transport.worker.ts",
+  "compatibility_date": "2026-09-30",
+}

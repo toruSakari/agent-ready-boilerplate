@@ -1,0 +1,2 @@
+ALTER TABLE `organizations` ADD `business_ip_restriction_enabled` integer DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE `organizations` ADD `business_allowed_ips` text DEFAULT '[]' NOT NULL;

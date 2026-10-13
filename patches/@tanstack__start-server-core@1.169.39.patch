@@ -1,0 +1,208 @@
+diff --git a/dist/esm/server-functions-handler.js b/dist/esm/server-functions-handler.js
+index 8aed913..1cbd863 100644
+--- a/dist/esm/server-functions-handler.js
++++ b/dist/esm/server-functions-handler.js
+@@ -30,15 +30,16 @@ function cancelRawStream(stream, reason) {
+ var handleServerAction = async ({ request, context, serverFnId }) => {
+ 	const methodUpper = request.method.toUpperCase();
+ 	const url = new URL(request.url);
+-	const action = await getServerFnById(serverFnId, { origin: "client" });
+-	if (action.method && methodUpper !== action.method) return new Response(`expected ${action.method} method. Got ${methodUpper}`, {
+-		status: 405,
+-		headers: { Allow: action.method }
+-	});
+ 	const isServerFn = request.headers.get("x-tsr-serverFn") === "true";
+ 	serovalPlugins ??= getSerovalPlugins(defaultSerovalDeserializerPlugins);
+ 	const contentType = request.headers.get("Content-Type");
++	let parsingInput = true;
+ 	try {
++		const action = await getServerFnById(serverFnId, { origin: "client" });
++		if (action.method && methodUpper !== action.method) return new Response(`expected ${action.method} method. Got ${methodUpper}`, {
++			status: 405,
++			headers: { Allow: action.method }
++		});
+ 		let res;
+ 		if (FORM_DATA_CONTENT_TYPES.some((type) => contentType && contentType.includes(type))) {
+ 			if (methodUpper === "GET") {
+@@ -57,13 +58,15 @@ var handleServerAction = async ({ request, context, serverFnId }) => {
+ 				const deserializedContext = fromJSON(JSON.parse(serializedContext), { plugins: serovalPlugins });
+ 				if (typeof deserializedContext === "object" && deserializedContext) params.context = safeObjectMerge(deserializedContext, context);
+ 			} catch (e) {
+-				if (process.env.NODE_ENV === "development") console.warn("Failed to parse FormData context:", e);
++				throw e;
+ 			}
++			parsingInput = false;
+ 			res = await action(params);
+ 		} else if (methodUpper === "GET") {
+ 			const payloadParam = url.searchParams.get("payload");
+ 			if (payloadParam && payloadParam.length > MAX_PAYLOAD_SIZE) throw new Error("Payload too large");
+ 			const payload = payloadParam ? fromJSON(JSON.parse(payloadParam), { plugins: serovalPlugins }) : void 0;
++			parsingInput = false;
+ 			res = await action({
+ 				data: payload?.data,
+ 				context: safeObjectMerge(payload?.context, context),
+@@ -71,12 +74,14 @@ var handleServerAction = async ({ request, context, serverFnId }) => {
+ 			});
+ 		} else {
+ 			const payload = contentType?.includes("application/json") ? fromJSON(await request.json(), { plugins: serovalPlugins }) : void 0;
++			parsingInput = false;
+ 			res = await action({
+ 				data: payload?.data,
+ 				context: safeObjectMerge(payload?.context, context),
+ 				method: methodUpper
+ 			});
+ 		}
++		if (res.error !== void 0 && !(res.error instanceof Response) && !isRedirect(res.error) && !isNotFound(res.error)) throw res.error;
+ 		const unwrapped = res.error !== void 0 ? res.error : res.result;
+ 		if (isNotFound(res)) res = isNotFoundResponse(res);
+ 		if (!isServerFn && (unwrapped instanceof Response || unwrapped === null || typeof unwrapped !== "object")) return unwrapped;
+@@ -89,20 +94,21 @@ var handleServerAction = async ({ request, context, serverFnId }) => {
+ 	} catch (error) {
+ 		if (error instanceof Response) return error;
+ 		if (isNotFound(error)) return isNotFoundResponse(error);
+-		console.error("Server Fn Error!", error);
+-		const serializedError = JSON.stringify(await toCrossJSONAsync(error, {
++		const status = parsingInput && error instanceof SyntaxError ? 400 : 500;
++		const publicError = new Error(status === 400 ? "入力形式が不正です" : "処理に失敗しました。しばらくしてから再試行してください");
++		publicError.stack = void 0;
++		const serializedError = JSON.stringify(await toCrossJSONAsync(publicError, {
+ 			refs: /* @__PURE__ */ new Map(),
+ 			plugins: serovalPlugins
+ 		}));
+-		const response = getResponse();
+ 		const headers = {
+ 			"Content-Type": "application/json",
+ 			[X_TSS_SERIALIZED]: "true"
+ 		};
+ 		try {
+ 			return new Response(serializedError, {
+-				status: response.status ?? 500,
+-				statusText: response.statusText,
++				status,
++				statusText: "",
+ 				headers
+ 			});
+ 		} catch {
+diff --git a/src/server-functions-handler.ts b/src/server-functions-handler.ts
+index 5288fa5..b564521 100644
+--- a/src/server-functions-handler.ts
++++ b/src/server-functions-handler.ts
+@@ -78,28 +78,29 @@ export const handleServerAction = async ({
+   const methodUpper = request.method.toUpperCase()
+   const url = new URL(request.url)
+ 
+-  const action = await getServerFnById(serverFnId, { origin: 'client' })
+-
+-  // Early method check: reject mismatched HTTP methods before parsing
+-  // the request payload (FormData, JSON, query string, etc.)
+-  if (action.method && methodUpper !== action.method) {
+-    return new Response(
+-      `expected ${action.method} method. Got ${methodUpper}`,
+-      {
+-        status: 405,
+-        headers: {
+-          Allow: action.method,
+-        },
+-      },
+-    )
+-  }
+-
+   const isServerFn = request.headers.get('x-tsr-serverFn') === 'true'
+   // Initialize serovalPlugins lazily (cached at module level)
+   serovalPlugins ??= getSerovalPlugins(routerDefaultSerovalPlugins)
+   const contentType = request.headers.get('Content-Type')
+ 
++  let parsingInput = true
+   try {
++    const action = await getServerFnById(serverFnId, { origin: 'client' })
++
++    // Early method check: reject mismatched HTTP methods before parsing
++    // the request payload (FormData, JSON, query string, etc.)
++    if (action.method && methodUpper !== action.method) {
++      return new Response(
++        `expected ${action.method} method. Got ${methodUpper}`,
++        {
++          status: 405,
++          headers: {
++            Allow: action.method,
++          },
++        },
++      )
++    }
++
+     let res: any
+     if (
+       FORM_DATA_CONTENT_TYPES.some(
+@@ -138,13 +139,12 @@ export const handleServerAction = async ({
+             )
+           }
+         } catch (e) {
+-          // Log warning for debugging but don't expose to client
+-          if (process.env.NODE_ENV === 'development') {
+-            console.warn('Failed to parse FormData context:', e)
+-          }
++          // 不正なcontextを無視して続行せず、公開エラー境界で拒否する。
++          throw e
+         }
+       }
+ 
++      parsingInput = false
+       res = await action(params)
+     } else if (methodUpper === 'GET') {
+       // Get payload directly from searchParams
+@@ -156,6 +156,7 @@ export const handleServerAction = async ({
+       const payload: any = payloadParam
+         ? fromJSON(JSON.parse(payloadParam), { plugins: serovalPlugins })
+         : undefined
++      parsingInput = false
+       res = await action({
+         data: payload?.data,
+         context: safeObjectMerge(payload?.context, context),
+@@ -165,6 +166,7 @@ export const handleServerAction = async ({
+       const payload: any = contentType?.includes('application/json')
+         ? fromJSON(await request.json(), { plugins: serovalPlugins })
+         : undefined
++      parsingInput = false
+       res = await action({
+         data: payload?.data,
+         context: safeObjectMerge(payload?.context, context),
+@@ -172,6 +174,8 @@ export const handleServerAction = async ({
+       })
+     }
+ 
++    // 生の失敗結果も同じ公開エラー境界へ集め、入力や内部例外を直列化しない。
++    if (res.error !== undefined && !(res.error instanceof Response) && !isRedirect(res.error) && !isNotFound(res.error)) throw res.error
+     const unwrapped = res.error !== undefined ? res.error : res.result
+ 
+     if (isNotFound(res)) {
+@@ -210,23 +214,25 @@ export const handleServerAction = async ({
+       return isNotFoundResponse(error)
+     }
+ 
+-    console.error('Server Fn Error!', error)
++    // アプリのrequest middlewareが結果を記録する。SDKから生の例外を出力しない。
++    const status = parsingInput && error instanceof SyntaxError ? 400 : 500
++    const publicError = new Error(status === 400 ? '入力形式が不正です' : '処理に失敗しました。しばらくしてから再試行してください')
++    publicError.stack = undefined
+ 
+     const serializedError = JSON.stringify(
+-      await toCrossJSONAsync(error, {
++      await toCrossJSONAsync(publicError, {
+         refs: new Map(),
+         plugins: serovalPlugins,
+       }),
+     )
+-    const response = getResponse()
+     const headers = {
+       'Content-Type': 'application/json',
+       [X_TSS_SERIALIZED]: 'true',
+     }
+     try {
+       return new Response(serializedError, {
+-        status: response.status ?? 500,
+-        statusText: response.statusText,
++        status,
++        statusText: '',
+         headers,
+       })
+     } catch {

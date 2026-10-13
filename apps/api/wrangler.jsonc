@@ -1,0 +1,89 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dev-template",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "worker-entry.ts",
+  "preview_urls": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  // 公開可能な設定だけを置く。認証先の空欄は配備先で明示し、秘密鍵はsecretで渡す。
+  "vars": {
+    "APP_ENV": "production",
+    "AUTH_MODE": "clerk",
+    "CLERK_AUTHORIZED_PARTIES": "",
+    "LEGACY_INVENTORY_TENANT_ID": "demo-store",
+    "ADMIN_ACCESS_ISSUER": "",
+    "ADMIN_ACCESS_AUDIENCE": "",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dev-template",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PRODUCT_IMAGES",
+      "bucket_name": "dev-template-product-images",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "ORDER_EVENTS",
+        "queue": "dev-template-order-events",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "dev-template-order-events",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+      },
+    ],
+  },
+  // 旧企業のSKU名を維持しながら、新企業の複合キーと名前空間を分離する。
+  "durable_objects": {
+    "bindings": [
+      { "name": "REQUEST_THROTTLE", "class_name": "RequestThrottle" },
+      {
+        "name": "INVENTORY_RESERVATIONS",
+        "class_name": "InventoryReservation",
+      },
+      { "name": "TENANT_INVENTORY_RESERVATIONS", "class_name": "TenantInventoryReservation" },
+    ],
+  },
+  // DOの永続化名前空間に結び付く履歴。クラス名・既存tagの変更で置き換えない。
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["InventoryReservation"],
+    },
+    { "tag": "v2", "new_sqlite_classes": ["TenantInventoryReservation"] },
+    { "tag": "v3", "new_sqlite_classes": ["RequestThrottle"] },
+  ],
+  // Outbox送信と遅延画像清掃は同じ定期ハンドラーから起動する。
+  "triggers": {
+    "crons": ["*/1 * * * *"],
+  },
+  // PreviewでもClerkを使い、DB・画像・Queue・DOはtooling/preview.mjsでPRごとに分離する。
+  "previews": {
+    "vars": {
+      "APP_ENV": "preview",
+      "AUTH_MODE": "clerk",
+      "CLERK_AUTHORIZED_PARTIES": "",
+      "LEGACY_INVENTORY_TENANT_ID": "demo-store",
+      "ADMIN_ACCESS_ISSUER": "",
+      "ADMIN_ACCESS_AUDIENCE": "",
+    },
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA",
+  },
+}

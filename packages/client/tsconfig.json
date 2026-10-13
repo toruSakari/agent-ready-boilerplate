@@ -1,0 +1,11 @@
+{
+  "extends": "@dev-template/config/tsconfig",
+  "compilerOptions": {
+    "paths": {
+      "#client/*": ["./src/*"]
+    },
+    "types": ["react", "react-dom", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.stories.tsx"]
+}

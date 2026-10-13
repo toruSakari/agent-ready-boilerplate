@@ -1,0 +1,6 @@
+interface:
+  display_name: "PRの作成"
+  short_description: "変更理由・影響・検証と操作の証拠を整理し、レビューしやすいPRを準備する。"
+  default_prompt: "$create-pr このブランチの差分と検証結果を確認し、まずPR本文を下書きして。"
+policy:
+  allow_implicit_invocation: true

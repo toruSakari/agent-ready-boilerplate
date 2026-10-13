@@ -1,0 +1,32 @@
+# ADR 025: フロントのエラー境界と復旧範囲
+
+## ステータス
+
+採用
+
+## 背景
+
+ページ遷移のbeforeLoadはRouterのError Boundaryへ例外を渡している一方、画面内の取得失敗は個別のAlertへ分散していました。取得失敗をサービス未登録や空データとして扱わず、内部例外の文言を公開せず、必要な領域だけを復旧できる方針が必要です。
+
+## 決定
+
+- 画面表示用の取得は`useSuspenseQuery`を使い、再取得の`error`も明示的にthrowして最寄りのBoundaryへ例外を渡します。条件付きの`useQuery`は共通の`shouldThrowQueryError`を`throwOnError`へ設定します。バックグラウンド取得が失敗した場合も古いデータの表示を取り下げます。
+- [TanStack Start公式ガイド](https://tanstack.com/start/latest/docs/framework/react/guide/error-boundaries)に従い、各アプリのcreateRouterにdefaultErrorComponentを設定します。必要なルートだけerrorComponentで上書きします。局所的な捕捉は公式CatchBoundaryを使い、独自のReact境界クラスは持ちません。通信Providerの内側には公式CatchBoundaryとQueryErrorResetBoundaryを接続するDataErrorBoundaryを置き、QueryClientを維持したまま取得失敗から復旧します。遷移前の失敗は既存のRouter境界で扱います。失敗表示は同期importにし、RouterのlazyRouteComponent内部でReact.useの呼び出し有無が変わる外部SDKの警告を避けます。
+- 注文・商品・運営管理のwidgetを接続するappに領域のBoundaryを置きます。管理画面のIP設定featureは独立したBoundaryを持ち、取得に失敗しても他の企業設定を維持します。企業切替ではそのBoundaryを作り直します。
+- FSDのレイヤーごとにBoundaryを必須にはしません。独立して表示を維持・復旧できる範囲と、エラー時に取り下げる必要がある範囲で配置を決めます。共通機構・表示はshared/ui、配置と業務判断は所有するapp・widget・featureが担当します。
+- 再試行時はQueryErrorResetBoundaryを解除し、失敗したクエリだけをresetします。成功したクエリとmutationを再実行せず、入力の再送信による重複更新を避けます。
+- 入力検証とフォームのmutation失敗は項目やフォーム内に表示し、入力を保持します。ReactのBoundaryはイベントハンドラやPromiseの拒否を直接捕捉しないため、明示的なcatchやuseMutationで扱います。
+- 画像の取得失敗は明示的な`throwOnError: false`で代替表示へ縮退します。任意一覧のFORBIDDENは`useSuspenseOptionalQuery`で`null`へ変換し、その領域だけを非表示にします。条件付きのロール候補は`perQueryAccessOptions`による403の停止・非表示を維持します。401・その他の403・通信失敗はBoundaryへ渡し、キャッシュの権限再確認・破棄を維持します。
+- Boundaryは例外の生のmessageやスタックを表示しません。権限拒否・資格確認失敗・一般の取得／描画失敗に応じた選択言語の案内を表示します。意図的に失敗させる検証でのReactの捕捉ログは、期待した拒否・障害経路として確認します。
+
+## 理由と影響
+
+境界の責務を共通化しつつ、復旧範囲は機能の所有元で選べます。資格確認に失敗したときは保護された子をマウントせず、失敗したクエリの成功データがキャッシュに残っていてもそれを描画しません。局所的な取得失敗・再試行・別領域の表示維持・描画例外・内部文言の非公開・任意一覧の403縮退を単体テストとStorybookで確認します。
+
+## 読み込みとSuspense
+
+通常の画面表示用クエリはTanStack Queryの[useSuspenseQuery](https://tanstack.com/query/latest/docs/framework/react/reference/useSuspenseQuery)を使い、データが存在する状態でUIを描画する。`DataErrorBoundary`の公式`CatchBoundary`内にReactの`Suspense`を置き、初回取得・ページ切替の読み込みをshadcn/ui公式Skeletonで表示する。Skeletonには読み込み領域の名前を付け、装飾の矩形は支援技術から隠す。注文と商品は一覧を作成フォームから分け、一覧の読み込み・取得失敗で入力を消さない。
+
+`useSuspenseQuery`には`enabled`がなく、キャッシュがある再取得エラーを既定でthrowしない。セッションと必須データは再取得の`error`もthrowし、古い権限や内部データを描画しない。任意一覧は`useSuspenseOptionalQuery`で403だけを`null`へ変換する。`null`は取得拒否、空配列は取得成功の空状態であり、未取得はSuspenseが扱う。拒否後は自動再取得とinvalidationによる再要求を止め、権限・会員変更時のresetで再照会を許可する。他のHTTPエラーはBoundaryへ渡す。
+
+認証待ちのサービス登録確認、資格の期限・会員IDを監視する定期確認、操作権限で停止するロール候補取得、失敗時に代替表示へ縮退する画像取得は`useQuery`を維持する。これらの条件付き取得を無条件のSuspense Queryへ変えて未認証の要求や権限の復活を起こさない。読み込み表示はSkeletonへ揃え、入力・mutationの送信状態はフォームが所有する。

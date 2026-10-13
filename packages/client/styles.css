@@ -1,0 +1,5 @@
+/* 共有クライアント自身の本番クラスだけを探索する。各アプリの探索範囲は所有アプリのCSSで指定する。 */
+@source "./src";
+@source not "./src/**/*.stories.tsx";
+@source not "./src/**/*.test.*";
+@source not "./src/test";

@@ -1,0 +1,6 @@
+interface:
+  display_name: "新しい業務への初期適用"
+  short_description: "要件から用語・境界とサンプルの採否を整理し、最初の機能へつなぐ。"
+  default_prompt: "$bootstrap-project このテンプレートを別の業務へ適用し、要件と最初のユースケースを整理して。"
+policy:
+  allow_implicit_invocation: true

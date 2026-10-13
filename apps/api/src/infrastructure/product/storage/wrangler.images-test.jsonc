@@ -1,0 +1,13 @@
+{
+  // getPlatformProxyのpersist:falseで使う統合テスト専用リソース。本番の配備設定には流用しない。
+  "name": "product-images-integration",
+  "compatibility_date": "2026-09-30",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "product-images-integration",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "r2_buckets": [{ "binding": "PRODUCT_IMAGES", "bucket_name": "product-images-integration" }],
+}
